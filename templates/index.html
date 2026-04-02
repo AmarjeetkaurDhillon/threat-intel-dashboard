@@ -16,11 +16,18 @@
         .table thead { background-color: #1f2937; color: #58a6ff; }
         .table tbody tr:hover { background-color: #1f2937; }
         .badge-critical { background-color: #da3633; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; }
+        .badge-ipv4 { background-color: #1f6feb; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; }
+        .badge-domain { background-color: #9e6a03; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; }
+        .badge-hostname { background-color: #6e40c9; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; }
+        .badge-url { background-color: #da3633; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; }
         .cve-id { color: #58a6ff; font-weight: bold; }
+        .indicator-value { color: #f85149; font-family: monospace; font-size: 0.88rem; }
         .stat-card { background-color: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; text-align: center; }
         .stat-number { font-size: 2rem; font-weight: bold; color: #58a6ff; }
         .stat-label { color: #8b949e; font-size: 0.85rem; margin-top: 4px; }
         .ai-summary { background-color: #0d1117; border-left: 3px solid #58a6ff; padding: 8px 12px; font-size: 0.82rem; color: #8b949e; margin-top: 6px; border-radius: 0 4px 4px 0; }
+        .search-box { background-color: #161b22; border: 1px solid #30363d; color: #c9d1d9; border-radius: 6px; padding: 8px 14px; width: 100%; margin-bottom: 16px; font-size: 0.9rem; }
+        .search-box:focus { outline: none; border-color: #58a6ff; }
         .footer { background-color: #161b22; border-top: 1px solid #30363d; padding: 15px; text-align: center; color: #8b949e; font-size: 0.85rem; margin-top: 40px; }
     </style>
 </head>
@@ -36,22 +43,28 @@
 <div class="container">
 
     <div class="row mb-4">
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="stat-card">
                 <div class="stat-number">{{ cves|length }}</div>
                 <div class="stat-label">Critical CVEs Tracked</div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="stat-card">
                 <div class="stat-number" style="color:#da3633;">CRITICAL</div>
                 <div class="stat-label">Highest Severity Level</div>
             </div>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
             <div class="stat-card">
                 <div class="stat-number" style="color:#3fb950;">LIVE</div>
                 <div class="stat-label">NVD Feed Status</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card">
+                <div class="stat-number">{{ indicators|length }}</div>
+                <div class="stat-label">Active Threat Indicators</div>
             </div>
         </div>
     </div>
@@ -59,11 +72,14 @@
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">⚠️ Critical Vulnerabilities — Live Feed with AI Analysis</h5>
-            <span style="color:#8b949e; font-size:0.8rem;">Source: NIST NVD + OpenAI Analysis</span>
+            <span style="color:#8b949e; font-size:0.8rem;">Source: NIST NVD</span>
+        </div>
+        <div class="card-body pb-0">
+            <input type="text" class="search-box" id="cveSearch" placeholder="Search CVEs by keyword e.g. Microsoft, Fortinet, RCE..." onkeyup="filterCVEs()">
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover mb-0" id="cveTable">
                     <thead>
                         <tr>
                             <th>CVE ID</th>
@@ -72,7 +88,7 @@
                             <th>Description + AI Analysis</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="cveTableBody">
                         {% for cve in cves %}
                         <tr>
                             <td class="cve-id">{{ cve.id }}</td>
@@ -90,11 +106,69 @@
         </div>
     </div>
 
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">🌐 Live Threat Indicators — AlienVault OTX</h5>
+            <span style="color:#8b949e; font-size:0.8rem;">Source: AlienVault OTX</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Indicator</th>
+                            <th>Threat Pulse</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in indicators %}
+                        <tr>
+                            <td>
+                                {% if item.type == "IPv4" %}
+                                <span class="badge-ipv4">IPv4</span>
+                                {% elif item.type == "domain" %}
+                                <span class="badge-domain">Domain</span>
+                                {% elif item.type == "hostname" %}
+                                <span class="badge-hostname">Hostname</span>
+                                {% else %}
+                                <span class="badge-url">URL</span>
+                                {% endif %}
+                            </td>
+                            <td class="indicator-value">{{ item.indicator }}</td>
+                            <td style="font-size:0.88rem;">{{ item.pulse }}</td>
+                            <td style="color:#8b949e;">{{ item.created }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mb-4">
+        <a href="/download-report" class="btn" style="background-color:#238636; color:white; padding:10px 30px; border-radius:6px; font-size:0.95rem; text-decoration:none;">
+            📄 Download PDF Threat Report
+        </a>
+    </div>
+
 </div>
 
 <div class="footer">
     Threat Intelligence Dashboard &mdash; MSc Cyber Security Project &mdash; University of Southampton
 </div>
+
+<script>
+function filterCVEs() {
+    var input = document.getElementById("cveSearch").value.toLowerCase();
+    var rows = document.getElementById("cveTableBody").getElementsByTagName("tr");
+    for (var i = 0; i < rows.length; i++) {
+        var text = rows[i].innerText.toLowerCase();
+        rows[i].style.display = text.includes(input) ? "" : "none";
+    }
+}
+</script>
 
 </body>
 </html>
