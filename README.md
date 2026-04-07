@@ -3,6 +3,8 @@
 A cybersecurity dashboard that fetches live critical CVEs from the NIST National Vulnerability Database and provides automated security analysis for each vulnerability.
 
 Built as part of MSc Cyber Security — University of Southampton.
+🌐 Live Demo: https://threat-intel-dashboard-u7n4.onrender.com
+
 <img src="dashboard-top.png" width="100%" alt="Threat Intelligence Dashboard - CVE Feed"/>
 
 <img src="dashboard-bottom.png" width="100%" alt="Threat Intelligence Dashboard - OTX Threat Indicators"/>
