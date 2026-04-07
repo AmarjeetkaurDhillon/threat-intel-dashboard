@@ -1,40 +1,27 @@
 from flask import Flask, render_template, request, send_file, jsonify
-from fetch_nvd import fetch_critical_cves
-from fetch_otx import fetch_otx_indicators
-from summariser import analyse_cve
-from report_generator import generate_threat_report
+from fetch_nvd import get_critical_cves
+from fetch_otx import get_threat_indicators
+from summariser import summarise_cve
+from report_generator import generate_report
 import os
 
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    cves = fetch_critical_cves()
-    analysed = []
+    cves = get_critical_cves(10)
     for cve in cves:
-        analysis = analyse_cve(cve)
-        analysed.append({**cve, **analysis})
-    
-    otx_data = fetch_otx_indicators()
-    
-    return render_template("index.html",
-                         cves=analysed,
-                         otx_indicators=otx_data,
-                         total_cves=len(analysed),
-                         critical_count=sum(1 for c in analysed if c.get("severity") == "CRITICAL"),
-                         high_count=sum(1 for c in analysed if c.get("severity") == "HIGH"))
+        cve["summary"] = summarise_cve(cve["id"], cve["description"])
+    indicators = get_threat_indicators()
+    return render_template("index.html", cves=cves, indicators=indicators)
 
 @app.route("/download-report")
 def download_report():
-    cves = fetch_critical_cves()
-    analysed = []
+    cves = get_critical_cves(10)
     for cve in cves:
-        analysis = analyse_cve(cve)
-        analysed.append({**cve, **analysis})
-    
-    otx_data = fetch_otx_indicators()
-    buffer = generate_threat_report(analysed, otx_data)
-    
+        cve["summary"] = summarise_cve(cve["id"], cve["description"])
+    indicators = get_threat_indicators()
+    buffer = generate_report(cves, indicators)
     return send_file(
         buffer,
         as_attachment=True,
@@ -44,7 +31,7 @@ def download_report():
 
 @app.route("/api/cves")
 def api_cves():
-    cves = fetch_critical_cves()
+    cves = get_critical_cves(10)
     return jsonify(cves)
 
 if __name__ == "__main__":
